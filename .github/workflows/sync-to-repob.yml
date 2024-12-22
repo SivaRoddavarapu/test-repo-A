@@ -11,31 +11,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the source repository (test-repo-A)
       - name: Checkout ${{ env.SOURCE_REPO }}
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # Get the latest commit hash
       - name: Get latest commit hash
         id: commit
         run: echo "commit_hash=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
+      # Set up Git configuration
       - name: Set up Git
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
+      # Clone the target repository (test-repo-B) into a fixed directory
       - name: Clone test-repo-B
         run: |
-          git clone https://x-access-token:${{secrets.BOILERPLATE_CODE_SYNC_PAT}}@github.com/SivaRoddavarapu/test-repo-B.git
-          cd test-repo-B
+          git clone https://x-access-token:${{secrets.BOILERPLATE_CODE_SYNC_PAT}}@github.com/SivaRoddavarapu/test-repo-B.git $GITHUB_WORKSPACE/test-repo-B
+          cd $GITHUB_WORKSPACE/test-repo-B
           git checkout dev || git checkout -b dev
 
-      - name: Sync files from test-repo-A to test-repo-B
+      # Sync files from test-repo-A to test-repo-B
+      - name: Sync files
         run: |
-          cd $GITHUB_WORKSPACE
-          rsync -av --exclude='.git/' . test-repo-B/ # Correct paths
-          cd test-repo-B
+          rsync -av --exclude='.git/' --exclude='test-repo-B/' $GITHUB_WORKSPACE/ $GITHUB_WORKSPACE/test-repo-B/
+          cd $GITHUB_WORKSPACE/test-repo-B
           git add .
           if git diff --cached --quiet; then
             echo "No changes to commit for test-repo-B"
