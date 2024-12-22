@@ -1,4 +1,4 @@
-name: CI demo code
+name: CI demo code 2
 
 on:
   workflow_dispatch: # Manual triggering
@@ -20,7 +20,7 @@ jobs:
       # Get the latest commit hash
       - name: Get latest commit hash
         id: commit
-        run: echo "commit_hash=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+        run: echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
       # Set up Git configuration
       - name: Set up Git
@@ -29,21 +29,16 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       # Clone the target repository (test-repo-B) into a fixed directory
-      - name: Clone test-repo-B
+      - name: Sync to test-repo-B dev branch
         run: |
-          git clone https://x-access-token:${{secrets.BOILERPLATE_CODE_SYNC_PAT}}@github.com/SivaRoddavarapu/test-repo-B.git $GITHUB_WORKSPACE/test-repo-B
-          cd $GITHUB_WORKSPACE/test-repo-B
+          git clone https://x-access-token:${{ secrets.BOILERPLATE_CODE_SYNC_PAT }}@github.com/sivaRoddavarapu/test-repo-B.git
+          cd test-repo-B
           git checkout dev || git checkout -b dev
-
-      # Sync files from test-repo-A to test-repo-B
-      - name: Sync files
-        run: |
-          rsync -av --exclude='.git/' --exclude='test-repo-B/' $GITHUB_WORKSPACE/ $GITHUB_WORKSPACE/test-repo-B/
-          cd $GITHUB_WORKSPACE/test-repo-B
+          rsync -av --exclude='.git/' ../test-repo-A/ . # Sync all files except .git
           git add .
           if git diff --cached --quiet; then
-            echo "No changes to commit for test-repo-B"
+            echo "No changes to commit for test-repo-B."
           else
-            git commit -m "Sync from ${{ env.SOURCE_REPO }} dev branch - commit ${{ env.commit_hash }}"
+            git commit -m "Sync from test-repo-A dev branch - commit ${{ env.COMMIT_HASH }}"
             git push origin dev
           fi
