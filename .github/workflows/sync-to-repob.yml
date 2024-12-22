@@ -25,12 +25,17 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Sync to test-repo-B branch
+      - name: Clone test-repo-B
         run: |
-          git clone https://x-access-token:${{ secrets.BOILERPLATE_CODE_SYNC_PAT }}@github.com/SivaRoddavarapu/test-repo-B
+          git clone https://x-access-token:${{secrets.BOILERPLATE_CODE_SYNC_PAT}}@github.com/SivaRoddavarapu/test-repo-B.git
           cd test-repo-B
           git checkout dev || git checkout -b dev
-          rsync -av --exclude='.git/' ../${{ env.SOURCE_REPO }}/ .
+
+      - name: Sync files from test-repo-A to test-repo-B
+        run: |
+          cd $GITHUB_WORKSPACE
+          rsync -av --exclude='.git/' . test-repo-B/ # Correct paths
+          cd test-repo-B
           git add .
           if git diff --cached --quiet; then
             echo "No changes to commit for test-repo-B"
