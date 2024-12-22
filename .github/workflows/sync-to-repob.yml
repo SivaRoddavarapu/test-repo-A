@@ -1,1 +1,40 @@
+name: CI demo code
 
+on:
+  workflow_dispatch: # Manual triggering
+
+env:
+  SOURCE_REPO: test-repo-A
+
+jobs:
+  sync-code:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout ${{ env.SOURCE_REPO }}
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get latest commit hash
+        id: commit
+        run: echo "commit_hash=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Set up Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Sync to test-repo-B branch
+        run: |
+          git clone https://x-access-token:${{ secrets.BOILERPLATE_CODE_SYNC_PAT }}@github.com/SivaRoddavarapu/test-repo-B
+          cd test-repo-B
+          git checkout dev || git checkout -b dev
+          rsync -av --exclude='.git/' ../${{ env.SOURCE_REPO }}/ .
+          git add .
+          if git diff --cached --quiet; then
+            echo "No changes to commit for test-repo-B"
+          else
+            git commit -m "Sync from ${{ env.SOURCE_REPO }} dev branch - commit ${{ env.commit_hash }}"
+            git push origin dev
+          fi
