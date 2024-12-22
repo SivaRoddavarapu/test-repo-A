@@ -1,7 +1,9 @@
-name: CI demo code 2
+name: CI demo code 3
 
 on:
-  workflow_dispatch: # Manual triggering
+  push:
+    branches:
+      - dev # Trigger workflow on pushes to the 'dev' branch
 
 env:
   SOURCE_REPO: test-repo-A
@@ -28,13 +30,20 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      # Clone the target repository (test-repo-B) into a fixed directory
-      - name: Sync to test-repo-B dev branch
+      # Clone the target repository (test-repo-B)
+      - name: Clone test-repo-B
         run: |
           git clone https://x-access-token:${{ secrets.BOILERPLATE_CODE_SYNC_PAT }}@github.com/sivaRoddavarapu/test-repo-B.git
+
+      # Sync only the files that were added or updated
+      - name: Sync files to test-repo-B
+        run: |
           cd test-repo-B
           git checkout dev || git checkout -b dev
-          rsync -av --exclude='.git/' ../test-repo-A/ . # Sync all files except .git
+          
+          # Copy updated and new files
+          rsync -av --exclude='.git/' ../ . # Sync all files except .git
+          
           git add .
           if git diff --cached --quiet; then
             echo "No changes to commit for test-repo-B."
